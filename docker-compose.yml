@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: taskmanager_db
+    environment:
+      POSTGRES_DB: taskmanager
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d taskmanager"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: taskmanager_web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "django-insecure-taskmanager-docker-dev-key"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,web"
+      POSTGRES_DB: taskmanager
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      CORS_ALLOW_ALL_ORIGINS: "True"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
