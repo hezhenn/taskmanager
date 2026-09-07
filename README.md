@@ -75,6 +75,7 @@ The project was built as a portfolio piece to demonstrate:
   - Task statuses: `TODO`, `IN_PROGRESS`, `DONE`
   - Task priorities: `LOW`, `MEDIUM`, `HIGH`
   - Optional due dates
+  - Task analytics and statistics (`/api/v1/tasks/statistics/`)
 - **Filtering, Search & Pagination**
   - Filter by status, priority, and due date range
   - Full-text search across title and description
@@ -84,7 +85,7 @@ The project was built as a portfolio piece to demonstrate:
   - OpenAPI 3.0 schema
   - Swagger UI and Redoc
 - **Testing**
-  - 22 automated tests covering auth, permissions, and CRUD
+  - 25 automated tests covering auth, permissions, CRUD, and analytics
 - **Containerization**
   - Fully Dockerized with PostgreSQL and health checks
 
@@ -234,7 +235,7 @@ python manage.py runserver
 pytest
 ```
 
-The test suite covers authentication, permissions, and full CRUD flows for tasks (22 tests).
+The test suite covers authentication, permissions, CRUD flows, and statistics for tasks (25 tests).
 
 ---
 
@@ -256,6 +257,7 @@ The test suite covers authentication, permissions, and full CRUD flows for tasks
 |--------|----------|--------------|----------------|
 | GET | `/` | List user's tasks (paginated) | Yes |
 | POST | `/` | Create a new task | Yes |
+| GET | `/statistics/` | Task analytics & statistics for dashboard | Yes |
 | GET | `/{id}/` | Retrieve task details (owner only) | Yes |
 | PUT | `/{id}/` | Full update of task (owner only) | Yes |
 | PATCH | `/{id}/` | Partial update of task (owner only) | Yes |

@@ -1,3 +1,5 @@
+from datetime import timedelta
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
@@ -152,3 +154,85 @@ class TaskFilterAndSearchTests(APITestCase):
         self.assertIn('previous', response.data)
         self.assertIn('results', response.data)
         self.assertEqual(response.data['count'], 3)
+
+class TaskStatisticsTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='statsuser',
+            email='stats@example.com',
+            password='Password123!'
+        )
+        self.other_user = User.objects.create_user(
+            username='otheruser',
+            email='other@example.com',
+            password='Password123!'
+        )
+        self.stats_url = reverse('task-statistics')
+
+        now = timezone.now()
+
+        Task.objects.create(
+            title='Task 1',
+            status=Task.Status.TODO,
+            priority=Task.Priority.HIGH,
+            owner=self.user
+        )
+
+        Task.objects.create(
+            title='Task 2',
+            status=Task.Status.IN_PROGRESS,
+            priority=Task.Priority.MEDIUM,
+            due_date=now - timedelta(days=2),
+            owner=self.user
+        )
+
+        Task.objects.create(
+            title='Task 3',
+            status=Task.Status.DONE,
+            priority=Task.Priority.LOW,
+            due_date=now - timedelta(days=5),
+            owner=self.user
+        )
+
+        Task.objects.create(
+            title='Other user task',
+            status=Task.Status.DONE,
+            owner=self.other_user
+        )
+
+    def test_statistics_authenticated(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.stats_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total'], 3)
+        self.assertEqual(response.data['by_status']['todo'], 1)
+        self.assertEqual(response.data['by_status']['in_progress'], 1)
+        self.assertEqual(response.data['by_status']['done'], 1)
+        self.assertEqual(response.data['by_priority']['high'], 1)
+        self.assertEqual(response.data['by_priority']['medium'], 1)
+        self.assertEqual(response.data['by_priority']['low'], 1)
+        self.assertEqual(response.data['overdue'], 1)
+        self.assertEqual(response.data['completion_rate_percentage'], 33.3)
+
+    def test_statistics_unauthenticated(self):
+        response = self.client.get(self.stats_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_statistics_empty_for_user_with_no_tasks(self):
+        empty_user = User.objects.create_user(
+            username='emptyuser',
+            email='empty@example.com',
+            password='Password123!'
+        )
+        self.client.force_authenticate(user=empty_user)
+        response = self.client.get(self.stats_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total'], 0)
+        self.assertEqual(response.data['by_status']['todo'], 0)
+        self.assertEqual(response.data['by_status']['in_progress'], 0)
+        self.assertEqual(response.data['by_status']['done'], 0)
+        self.assertEqual(response.data['by_priority']['high'], 0)
+        self.assertEqual(response.data['by_priority']['medium'], 0)
+        self.assertEqual(response.data['by_priority']['low'], 0)
+        self.assertEqual(response.data['overdue'], 0)
+        self.assertEqual(response.data['completion_rate_percentage'], 0.0)
