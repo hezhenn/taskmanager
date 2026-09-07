@@ -1,11 +1,75 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Task Manager</title>
-    </head>
-    <body>
-        <h1>Task Manager Frontend Ready</h1>
-    </body>
-    </html>
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span>✅</span>
+            <span>Task Manager</span>
+        </div>
+        <div id="navUser" class="navbar-user hidden">
+            <span id="userNameGreeting" style="font-weight: 500;"></span>
+            <button id="logoutBtn" class="btn btn-outline" type="button">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Authentication Screen -->
+    <div id="authSection" class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-tabs">
+                <button id="tabLogin" class="auth-tab active" type="button">Sign In</button>
+                <button id="tabRegister" class="auth-tab" type="button">Sign Up</button>
+            </div>
+
+            <div id="authAlert" class="alert alert-danger hidden"></div>
+
+            <!-- Login Form -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="loginUsername">Username</label>
+                    <input class="form-input" type="text" id="loginUsername" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="loginPassword">Password</label>
+                    <input class="form-input" type="password" id="loginPassword" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="hidden">
+                <div class="form-group">
+                    <label class="form-label" for="regUsername">Username</label>
+                    <input class="form-input" type="text" id="regUsername" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="regEmail">Email</label>
+                    <input class="form-input" type="email" id="regEmail" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="regPassword">Password</label>
+                    <input class="form-input" type="password" id="regPassword" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="regPasswordConfirm">Confirm Password</label>
+                    <input class="form-input" type="password" id="regPasswordConfirm" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application Screen (Placeholder for Step 2.3) -->
+    <main id="appSection" class="container hidden">
+        <!-- Dashboard & Tasks will be placed here in step 2.3 -->
+    </main>
+
+    <script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>
