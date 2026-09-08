@@ -1,9 +1,8 @@
-# ✅ Task Manager API
+# ⚡ TaskFlow — Personal Task Management Platform & API
 
 [![CI Status](https://github.com/hezhenn/taskmanager/actions/workflows/ci.yml/badge.svg)](https://github.com/hezhenn/taskmanager/actions/workflows/ci.yml)
 
-A RESTful API for task management built with **Django REST Framework**, **PostgreSQL**, and **Docker**. Features JWT authentication, ownership-based permissions, advanced filtering, and full OpenAPI documentation.
-
+A production-ready, full-stack task management platform and RESTful API built with **Django REST Framework**, **PostgreSQL**, **Redis**, **Celery**, and **Docker**. Features a modern dark SaaS UI, JWT authentication, ownership-based permissions, advanced filtering, async email notifications, periodic Celery Beat digests, and full OpenAPI documentation.
 
 ---
 
@@ -18,6 +17,13 @@ A RESTful API for task management built with **Django REST Framework**, **Postgr
   <img src="https://img.shields.io/badge/django--filter-Filtering-lightgrey?style=flat-square" alt="django-filter">
   <img src="https://img.shields.io/badge/Celery-5.6-37814A?style=flat-square&logo=celery" alt="Celery">
   <img src="https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis">
+</p>
+
+### Frontend
+<p>
+  <img src="https://img.shields.io/badge/JavaScript-Vanilla%20SPA-F7DF1E?style=flat-square&logo=javascript&logoColor=black" alt="JavaScript">
+  <img src="https://img.shields.io/badge/CSS3-Modern%20Dark%20SaaS-1572B6?style=flat-square&logo=css3&logoColor=white" alt="CSS3">
+  <img src="https://img.shields.io/badge/HTML5-Semantic-E34F26?style=flat-square&logo=html5&logoColor=white" alt="HTML5">
 </p>
 
 ### Database & Docs
@@ -37,24 +43,45 @@ A RESTful API for task management built with **Django REST Framework**, **Postgr
 
 ---
 
+## 🖥️ Interface Preview
+
+| Workspace Dashboard | Task Creation Modal |
+| :---: | :---: |
+| ![Workspace Dashboard](docs/images/dashboard-overview.png) | ![Task Creation Modal](docs/images/create-task-modal.png) |
+| *Real-time metrics, task counters, and priority distribution* | *Interactive modal with priority tags and deadline pickers* |
+
+| Account Profile | Interactive API Architecture & Docs |
+| :---: | :---: |
+| ![Account Profile](docs/images/account-profile.png) | ![API Documentation](docs/images/api-docs.png) |
+| *User settings and live profile editing via PATCH /api/v1/auth/me/* | *In-app developer hub with endpoint specs and Swagger links* |
+
+<div align="center">
+  <img src="docs/images/auth-register.png" width="600" alt="Authentication & Registration">
+  <p><em>Authentication & Registration — Secure JWT-based auth flow with dark glassmorphism card</em></p>
+</div>
+
+---
+
 ## ✨ Overview
 
-**Task Manager API** is a backend service built to practice production-style Django development: clean project structure, token-based authentication, permission-based data access, automated testing, and containerized deployment.
+**TaskFlow** is a task management platform and backend service built to demonstrate production-style Django engineering: clean modular structure, token-based authentication, ownership-based permissions, asynchronous worker pipelines, automated testing, and containerized multi-service orchestration.
 
 The project was built as a portfolio piece to demonstrate:
 
-- REST API design with Django REST Framework
-- JWT authentication and secure endpoint protection
+- REST API design with Django REST Framework (serializers, viewsets, filters)
+- JWT authentication with automatic client-side token refresh
 - Ownership-based access control (users can only manage their own data)
-- Filtering, searching, and pagination on API resources
-- Automated testing with `pytest`
-- OpenAPI documentation with Swagger and Redoc
-- Multi-service orchestration with Docker Compose
+- Asynchronous task processing and scheduled routines with Celery and Redis
+- Modern dark SaaS user interface (Vanilla JS SPA)
+- Automated testing and CI/CD with `pytest`, `flake8`, and GitHub Actions
+- OpenAPI 3.0 documentation with Swagger UI and Redoc
+- Multi-service orchestration with Docker Compose (5 containers)
 
 ---
 
 ## 📑 Table of Contents
 
+- [Interface Preview](#️-interface-preview)
 - [Features](#-features)
 - [Architecture](#️-architecture)
 - [Project Structure](#-project-structure)
@@ -204,9 +231,13 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your_password
 POSTGRES_HOST=db
 POSTGRES_PORT=5432
+
+# Celery & Redis
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
 ```
 
-If PostgreSQL environment variables are not set, the project falls back to SQLite for local development.
+If PostgreSQL and Redis environment variables are not set, the project falls back to SQLite and synchronous task execution for local development.
 
 ---
 
@@ -231,15 +262,19 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Docker Compose will:
-- start and configure PostgreSQL with a health check
-- run database migrations automatically
-- start the Django server at `http://localhost:8000`
+Docker Compose orchestrates 5 services:
+- **`db`**: PostgreSQL 16 database with health check
+- **`redis`**: Redis 7 in-memory broker with health check
+- **`web`**: Django server & TaskFlow SaaS UI running migrations on boot
+- **`celery_worker`**: Background worker for async email dispatches
+- **`celery_beat`**: Scheduler for periodic daily task digests
 
-### 4. Open the API documentation
+### 4. Access the Application & Documentation
 
-- Swagger UI: `http://localhost:8000/api/docs/`
-- Redoc: `http://localhost:8000/api/redoc/`
+- **TaskFlow Web Application**: `http://localhost:8000/`
+- **Interactive Swagger UI**: `http://localhost:8000/api/docs/`
+- **Redoc Documentation**: `http://localhost:8000/api/redoc/`
+- **OpenAPI Schema (YAML)**: `http://localhost:8000/api/schema/`
 
 ---
 
@@ -265,7 +300,7 @@ python manage.py runserver
 pytest
 ```
 
-The test suite covers authentication, permissions, CRUD flows, and statistics for tasks (25 tests).
+The test suite covers authentication, permissions, CRUD flows, analytics, and Celery asynchronous tasks (30 automated tests).
 
 ---
 
