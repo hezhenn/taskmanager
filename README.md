@@ -9,13 +9,15 @@ A RESTful API for task management built with **Django REST Framework**, **Postgr
 
 ## 🛠️ Tech Stack
 
-### Backend
+### Backend & Async
 <p>
   <img src="https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python" alt="Python">
   <img src="https://img.shields.io/badge/Django-5.2-092E20?style=flat-square&logo=django" alt="Django">
   <img src="https://img.shields.io/badge/Django%20REST%20Framework-API-red?style=flat-square" alt="DRF">
   <img src="https://img.shields.io/badge/SimpleJWT-Authentication-yellowgreen?style=flat-square" alt="JWT">
   <img src="https://img.shields.io/badge/django--filter-Filtering-lightgrey?style=flat-square" alt="django-filter">
+  <img src="https://img.shields.io/badge/Celery-5.6-37814A?style=flat-square&logo=celery" alt="Celery">
+  <img src="https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis">
 </p>
 
 ### Database & Docs
@@ -81,6 +83,10 @@ The project was built as a portfolio piece to demonstrate:
   - Task priorities: `LOW`, `MEDIUM`, `HIGH`
   - Optional due dates
   - Task analytics and statistics (`/api/v1/tasks/statistics/`)
+- **Asynchronous & Periodic Tasks (Celery + Redis)**
+  - Immediate asynchronous email alerts dispatched upon high-priority task creation
+  - Daily overdue task digest automated via Celery Beat periodic scheduler
+  - Containerized Celery worker and scheduler with health checks
 - **Filtering, Search & Pagination**
   - Filter by status, priority, and due date range
   - Full-text search across title and description
@@ -90,27 +96,40 @@ The project was built as a portfolio piece to demonstrate:
   - OpenAPI 3.0 schema
   - Swagger UI and Redoc
 - **Testing**
-  - 25 automated tests covering auth, permissions, CRUD, and analytics
+  - 30 automated tests covering auth, permissions, CRUD, analytics, and Celery tasks
 - **Containerization**
-  - Fully Dockerized with PostgreSQL and health checks
+  - Fully Dockerized with PostgreSQL, Redis, Celery Worker, and Celery Beat
 
 ---
 
 ## 🏗️ Architecture
 
-The project consists of two main services orchestrated via Docker Compose:
+The application is architected around a multi-service containerized environment orchestrated via Docker Compose:
 
 ### `web`
 The Django application:
 - handles authentication and JWT issuing
-- exposes the Tasks REST API (CRUD, filtering, search, pagination)
+- exposes the Tasks REST API (CRUD, filtering, search, pagination, statistics)
+- serves the modern dark SaaS frontend
 - enforces ownership-based permissions
 - generates OpenAPI schema and serves Swagger/Redoc
 
 ### `db`
 PostgreSQL database:
 - stores users, tasks, and related metadata
-- runs with a Docker health check to ensure `web` starts only once the database is ready
+- runs with a Docker health check to ensure dependent services start only once the database is healthy
+
+### `redis`
+Redis in-memory data store:
+- serves as the message broker and result backend for Celery
+
+### `celery_worker`
+Celery background worker:
+- processes asynchronous jobs off the main request-response cycle (e.g. email dispatches)
+
+### `celery_beat`
+Celery Beat scheduler:
+- periodically triggers recurring routines (daily overdue tasks digest)
 
 ---
 
@@ -136,14 +155,20 @@ taskmanager/
 │       ├── models.py
 │       ├── permissions.py
 │       ├── serializers.py
+│       ├── tasks.py
 │       ├── tests.py
 │       ├── urls.py
 │       └── views.py
 ├── config/
 │   ├── asgi.py
+│   ├── celery.py
 │   ├── settings.py
 │   ├── urls.py
 │   └── wsgi.py
+├── .flake8
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── .dockerignore
 ├── .env.example
 ├── .gitignore
@@ -359,7 +384,6 @@ curl -X GET http://localhost:8000/api/v1/auth/me/ \
 
 A few ideas for future development:
 
-- Add asynchronous task processing with Celery and Redis (email notifications, deadline reminders)
 - Add Redis caching for frequently listed tasks and statistics
 - Add rate limiting on authentication endpoints
 - Add soft-delete for tasks instead of permanent deletion
@@ -376,9 +400,10 @@ Through this project, I practiced and improved my skills in:
 - writing custom permission classes for ownership-based access control
 - building filtering, search, and pagination for API resources
 - generating and maintaining OpenAPI documentation with drf-spectacular
-- writing automated tests with pytest and pytest-django
+- integrating Celery and Redis for asynchronous task execution (email alerts) and periodic background jobs (Celery Beat digests)
+- writing automated tests with pytest and pytest-django (30 tests)
 - configuring automated CI/CD workflows with GitHub Actions (Flake8 linting, PostgreSQL service, test suite)
-- containerizing a multi-service application with Docker Compose and health checks
+- orchestrating a multi-service containerized architecture (Django, PostgreSQL, Redis, Celery Worker, Celery Beat) with Docker Compose
 
 This project was built as a practical portfolio piece to combine API design, authentication, testing, and Docker-based deployment in one application.
 

@@ -29,7 +29,10 @@ class TaskViewSet(viewsets.ModelViewSet):
         return Task.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        task = serializer.save(owner=self.request.user)
+        if task.priority == Task.Priority.HIGH:
+            from .tasks import send_task_high_priority_alert
+            send_task_high_priority_alert.delay(task.id)
 
     @extend_schema(
         summary="Get task analytics and statistics for the current user",

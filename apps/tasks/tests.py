@@ -1,10 +1,13 @@
 from datetime import timedelta
-from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 from .models import Task
+from .tasks import send_overdue_tasks_digest, send_task_high_priority_alert
 
 User = get_user_model()
 
@@ -237,3 +240,86 @@ class TaskStatisticsTests(APITestCase):
         self.assertEqual(response.data['by_priority']['low'], 0)
         self.assertEqual(response.data['overdue'], 0)
         self.assertEqual(response.data['completion_rate_percentage'], 0.0)
+
+
+@override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    CELERY_TASK_ALWAYS_EAGER=True,
+)
+class CeleryTasksTests(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='celeryuser',
+            email='celeryuser@example.com',
+            password='Password123!'
+        )
+        mail.outbox.clear()
+
+    def test_send_task_high_priority_alert_success(self):
+        task = Task.objects.create(
+            title='Critical DB Migration',
+            priority=Task.Priority.HIGH,
+            owner=self.user,
+        )
+        result = send_task_high_priority_alert(task.id)
+        self.assertEqual(result, f"Alert sent to {self.user.email}")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('[TaskFlow Alert] High Priority Task: Critical DB Migration', mail.outbox[0].subject)
+        self.assertIn('Critical DB Migration', mail.outbox[0].body)
+
+    def test_send_task_high_priority_alert_not_found(self):
+        result = send_task_high_priority_alert(99999)
+        self.assertEqual(result, "Task #99999 not found")
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_send_task_high_priority_alert_no_email(self):
+        user_no_email = User.objects.create_user(
+            username='noemailuser',
+            email='',
+            password='Password123!'
+        )
+        task = Task.objects.create(
+            title='Task without email',
+            priority=Task.Priority.HIGH,
+            owner=user_no_email,
+        )
+        result = send_task_high_priority_alert(task.id)
+        self.assertEqual(result, f"No email for task #{task.id} owner")
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_send_overdue_tasks_digest(self):
+        past_date = timezone.now() - timedelta(days=2)
+        Task.objects.create(
+            title='Overdue Task 1',
+            status=Task.Status.TODO,
+            priority=Task.Priority.HIGH,
+            due_date=past_date,
+            owner=self.user,
+        )
+        Task.objects.create(
+            title='Completed Task',
+            status=Task.Status.DONE,
+            priority=Task.Priority.MEDIUM,
+            due_date=past_date,
+            owner=self.user,
+        )
+
+        summary = send_overdue_tasks_digest()
+        self.assertEqual(summary['processed_users'], 1)
+        self.assertEqual(summary['total_overdue'], 1)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Overdue Tasks Digest', mail.outbox[0].subject)
+        self.assertIn('Overdue Task 1', mail.outbox[0].body)
+
+    def test_create_high_priority_task_triggers_async_alert(self):
+        self.client.force_authenticate(user=self.user)
+        payload = {
+            'title': 'High Priority Server Outage',
+            'priority': 'HIGH',
+            'status': 'TODO',
+        }
+        response = self.client.post(reverse('task-list'), payload)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('High Priority Server Outage', mail.outbox[0].subject)
