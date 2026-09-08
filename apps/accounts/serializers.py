@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 User = get_user_model()
 
+
 class UserRegisterSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(
@@ -45,6 +46,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
 

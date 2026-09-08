@@ -164,7 +164,10 @@ SIMPLE_JWT = {
 # drf-spectacular OpenAPI / Swagger documentation
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Task Manager API',
-    'DESCRIPTION': 'REST API for task management with JWT authentication, ownership-based permissions, filtering and pagination.',
+    'DESCRIPTION': (
+        'REST API for task management with JWT authentication, '
+        'ownership-based permissions, filtering and pagination.'
+    ),
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
@@ -172,4 +175,3 @@ SPECTACULAR_SETTINGS = {
 
 # CORS configuration
 CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() in ('true', '1', 'yes')
-

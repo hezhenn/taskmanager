@@ -155,6 +155,7 @@ class TaskFilterAndSearchTests(APITestCase):
         self.assertIn('results', response.data)
         self.assertEqual(response.data['count'], 3)
 
+
 class TaskStatisticsTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(

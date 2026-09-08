@@ -54,6 +54,7 @@ class UserRegistrationTest(APITestCase):
         response = self.client.post(self.register_url, self.valid_payload)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+
 class UserAuthenticationTests(APITestCase):
 
     def setUp(self):
@@ -96,6 +97,7 @@ class UserAuthenticationTests(APITestCase):
         response = self.client.post(self.refresh_url, {'refresh': refresh_token})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('access', response.data)
+
 
 class UserProfileTests(APITestCase):
 

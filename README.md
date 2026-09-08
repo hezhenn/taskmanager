@@ -1,6 +1,9 @@
 # ✅ Task Manager API
 
+[![CI Status](https://github.com/hezhenn/taskmanager/actions/workflows/ci.yml/badge.svg)](https://github.com/hezhenn/taskmanager/actions/workflows/ci.yml)
+
 A RESTful API for task management built with **Django REST Framework**, **PostgreSQL**, and **Docker**. Features JWT authentication, ownership-based permissions, advanced filtering, and full OpenAPI documentation.
+
 
 ---
 
@@ -25,7 +28,9 @@ A RESTful API for task management built with **Django REST Framework**, **Postgr
 ### Infrastructure & Testing
 <p>
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker" alt="Docker">
+  <img src="https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-2088FF?style=flat-square&logo=githubactions&logoColor=white" alt="GitHub Actions">
   <img src="https://img.shields.io/badge/pytest-Testing-0A9EDC?style=flat-square&logo=pytest&logoColor=white" alt="pytest">
+  <img src="https://img.shields.io/badge/flake8-Linting-4B8BBE?style=flat-square" alt="flake8">
 </p>
 
 ---
@@ -354,10 +359,10 @@ curl -X GET http://localhost:8000/api/v1/auth/me/ \
 
 A few ideas for future development:
 
-- Add Redis caching for frequently listed tasks
+- Add asynchronous task processing with Celery and Redis (email notifications, deadline reminders)
+- Add Redis caching for frequently listed tasks and statistics
 - Add rate limiting on authentication endpoints
 - Add soft-delete for tasks instead of permanent deletion
-- Add CI pipeline (GitHub Actions) to run tests automatically
 - Add task comments or activity history
 
 ---
@@ -372,6 +377,7 @@ Through this project, I practiced and improved my skills in:
 - building filtering, search, and pagination for API resources
 - generating and maintaining OpenAPI documentation with drf-spectacular
 - writing automated tests with pytest and pytest-django
+- configuring automated CI/CD workflows with GitHub Actions (Flake8 linting, PostgreSQL service, test suite)
 - containerizing a multi-service application with Docker Compose and health checks
 
 This project was built as a practical portfolio piece to combine API design, authentication, testing, and Docker-based deployment in one application.

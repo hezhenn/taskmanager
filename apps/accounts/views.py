@@ -1,13 +1,14 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework import generics, permissions, viewsets
+from rest_framework import generics, permissions
 from .serializers import UserProfileSerializer, UserRegisterSerializer
 
 
-@extend_schema(tags=['auth'], summary='Register a news user')
+@extend_schema(tags=['auth'], summary='Register a new user')
 class RegisterView(generics.CreateAPIView):
 
     permission_classes = [permissions.AllowAny]
     serializer_class = UserRegisterSerializer
+
 
 @extend_schema(tags=['auth'], summary='Get or update current user profile')
 class UserProfileView(generics.RetrieveUpdateAPIView):

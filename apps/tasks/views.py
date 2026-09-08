@@ -10,18 +10,22 @@ from .models import Task
 from .permissions import IsOwner
 from .serializers import TaskSerializer
 
+
 @extend_schema(tags=['tasks'])
 class TaskViewSet(viewsets.ModelViewSet):
 
+    queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwner]
-    filter_backends = [DjangoFilterBackend,  drf_filters.SearchFilter, drf_filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, drf_filters.SearchFilter, drf_filters.OrderingFilter]
     filterset_class = TaskFilter
     search_fields = ['title', 'description']
     ordering_fields = ['due_date', 'priority', 'created_at', 'title']
     ordering = ['-created_at']
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Task.objects.none()
         return Task.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
