@@ -2,7 +2,7 @@
 
 [![CI Status](https://github.com/hezhenn/taskmanager/actions/workflows/ci.yml/badge.svg)](https://github.com/hezhenn/taskmanager/actions/workflows/ci.yml)
 
-A production-ready RESTful API and task management service built with **Django REST Framework**, **PostgreSQL**, **Redis**, **Celery**, and **Docker**. Features JWT authentication, ownership-based access control, task analytics, asynchronous background tasks, automated periodic digests, and full OpenAPI 3.0 documentation. Includes an interactive web interface for managing and testing tasks.
+A production-ready RESTful API and task management service built with **Django REST Framework**, **PostgreSQL**, **Redis**, **Celery**, and **Docker**. Features JWT authentication, API rate limiting, ownership-based access control, Redis Cache-Aside task analytics with smart signal invalidation, asynchronous background worker alerts, automated periodic digests via Celery Beat, and comprehensive OpenAPI 3.0 documentation. Includes an interactive single-page web interface for managing and testing tasks.
 
 ---
 
@@ -70,7 +70,9 @@ The project was built as a portfolio piece to demonstrate:
 
 - REST API design with Django REST Framework (serializers, viewsets, filters)
 - JWT authentication with automatic client-side token refresh
+- API rate limiting and security throttling against brute-force attacks
 - Ownership-based access control (users can only access and modify their own data)
+- High-performance caching with Redis (Cache-Aside pattern and signal-based cache invalidation)
 - Asynchronous task processing and scheduled routines with Celery and Redis
 - Single-page application interface for direct API interaction
 - Automated testing and CI/CD with `pytest` (34 tests), `flake8`, and GitHub Actions
@@ -265,7 +267,7 @@ THROTTLE_RATE_AUTH=10/minute
 THROTTLE_RATE_REGISTER=5/minute
 ```
 
-If PostgreSQL and Redis environment variables are not set, the project falls back to SQLite and synchronous task execution for local development.
+If PostgreSQL and Redis environment variables are not set, the project falls back to SQLite, local in-memory caching (`LocMemCache`), and synchronous task execution for local development.
 
 ---
 
@@ -363,13 +365,13 @@ python manage.py spectacular --validate --fail-on-warn
 
 ### Authentication (`/api/v1/auth/`)
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|--------------|----------------|
-| POST | `/register/` | Register a new user | No |
-| POST | `/token/` | Obtain JWT access and refresh tokens | No |
-| POST | `/token/refresh/` | Refresh expired access token | No |
-| GET | `/me/` | Retrieve current user profile | Yes |
-| PATCH | `/me/` | Update current user profile | Yes |
+| Method | Endpoint | Description | Rate Limit | Auth Required |
+|--------|----------|--------------|------------|----------------|
+| POST | `/register/` | Register a new user | 5 req/min | No |
+| POST | `/token/` | Obtain JWT access and refresh tokens | 10 req/min | No |
+| POST | `/token/refresh/` | Refresh expired access token | 10 req/min | No |
+| GET | `/me/` | Retrieve current user profile | 1000 req/min | Yes |
+| PATCH | `/me/` | Update current user profile | 1000 req/min | Yes |
 
 ### Tasks (`/api/v1/tasks/`)
 
@@ -377,7 +379,7 @@ python manage.py spectacular --validate --fail-on-warn
 |--------|----------|--------------|----------------|
 | GET | `/` | List user's tasks (paginated) | Yes |
 | POST | `/` | Create a new task | Yes |
-| GET | `/statistics/` | Task analytics & statistics for dashboard | Yes |
+| GET | `/statistics/` | Task analytics & metrics (cached via Redis) | Yes |
 | GET | `/{id}/` | Retrieve task details (owner only) | Yes |
 | PUT | `/{id}/` | Full update of task (owner only) | Yes |
 | PATCH | `/{id}/` | Partial update of task (owner only) | Yes |
@@ -480,12 +482,14 @@ curl -X GET http://localhost:8000/api/v1/auth/me/ \
   -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>"
 ```
 
-### 7. Retrieve dashboard analytics & statistics
+### 7. Retrieve dashboard analytics & statistics (Cached via Redis)
 
 ```bash
 curl -X GET http://localhost:8000/api/v1/tasks/statistics/ \
   -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>"
 ```
+
+*(Accelerated by the Redis Cache-Aside pattern; automatically invalidated upon task create/update/delete)*
 
 Response:
 
