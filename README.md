@@ -1,8 +1,8 @@
-# ⚡ TaskFlow — Personal Task Management Platform & API
+# ⚡ TaskFlow — Task Management API & Service
 
 [![CI Status](https://github.com/hezhenn/taskmanager/actions/workflows/ci.yml/badge.svg)](https://github.com/hezhenn/taskmanager/actions/workflows/ci.yml)
 
-A production-ready, full-stack task management platform and RESTful API built with **Django REST Framework**, **PostgreSQL**, **Redis**, **Celery**, and **Docker**. Features a modern dark SaaS UI, JWT authentication, ownership-based permissions, advanced filtering, async email notifications, periodic Celery Beat digests, and full OpenAPI documentation.
+A production-ready RESTful API and task management service built with **Django REST Framework**, **PostgreSQL**, **Redis**, **Celery**, and **Docker**. Features JWT authentication, ownership-based access control, task analytics, asynchronous background tasks, automated periodic digests, and full OpenAPI 3.0 documentation. Includes an interactive web interface for managing and testing tasks.
 
 ---
 
@@ -22,7 +22,7 @@ A production-ready, full-stack task management platform and RESTful API built wi
 ### Frontend
 <p>
   <img src="https://img.shields.io/badge/JavaScript-Vanilla%20SPA-F7DF1E?style=flat-square&logo=javascript&logoColor=black" alt="JavaScript">
-  <img src="https://img.shields.io/badge/CSS3-Modern%20Dark%20SaaS-1572B6?style=flat-square&logo=css3&logoColor=white" alt="CSS3">
+  <img src="https://img.shields.io/badge/CSS3-Responsive%20Layout-1572B6?style=flat-square&logo=css3&logoColor=white" alt="CSS3">
   <img src="https://img.shields.io/badge/HTML5-Semantic-E34F26?style=flat-square&logo=html5&logoColor=white" alt="HTML5">
 </p>
 
@@ -48,34 +48,34 @@ A production-ready, full-stack task management platform and RESTful API built wi
 | Workspace Dashboard | Task Creation Modal |
 | :---: | :---: |
 | ![Workspace Dashboard](docs/images/dashboard-overview.png) | ![Task Creation Modal](docs/images/create-task-modal.png) |
-| *Real-time metrics, task counters, and priority distribution* | *Interactive modal with priority tags and deadline pickers* |
+| *Real-time metrics, task status counters, and priority breakdown* | *Task creation dialog with priority tags and deadline pickers* |
 
 | Account Profile | Interactive API Architecture & Docs |
 | :---: | :---: |
 | ![Account Profile](docs/images/account-profile.png) | ![API Documentation](docs/images/api-docs.png) |
-| *User settings and live profile editing via PATCH /api/v1/auth/me/* | *In-app developer hub with endpoint specs and Swagger links* |
+| *User settings and live profile updates via PATCH /api/v1/auth/me/* | *In-app developer hub with endpoint specs and schema links* |
 
 <div align="center">
   <img src="docs/images/auth-register.png" width="600" alt="Authentication & Registration">
-  <p><em>Authentication & Registration — Secure JWT-based auth flow with dark glassmorphism card</em></p>
+  <p><em>Authentication & Registration — Secure JWT-based auth flow with token management</em></p>
 </div>
 
 ---
 
 ## ✨ Overview
 
-**TaskFlow** is a task management platform and backend service built to demonstrate production-style Django engineering: clean modular structure, token-based authentication, ownership-based permissions, asynchronous worker pipelines, automated testing, and containerized multi-service orchestration.
+**TaskFlow** is a task management backend service and interactive application built to demonstrate production-style Django development: clean modular structure, token-based authentication, permission-based data access, asynchronous worker pipelines, automated testing, and multi-service container orchestration.
 
 The project was built as a portfolio piece to demonstrate:
 
 - REST API design with Django REST Framework (serializers, viewsets, filters)
 - JWT authentication with automatic client-side token refresh
-- Ownership-based access control (users can only manage their own data)
+- Ownership-based access control (users can only access and modify their own data)
 - Asynchronous task processing and scheduled routines with Celery and Redis
-- Modern dark SaaS user interface (Vanilla JS SPA)
-- Automated testing and CI/CD with `pytest`, `flake8`, and GitHub Actions
+- Single-page application interface for direct API interaction
+- Automated testing and CI/CD with `pytest` (30 tests), `flake8`, and GitHub Actions
 - OpenAPI 3.0 documentation with Swagger UI and Redoc
-- Multi-service orchestration with Docker Compose (5 containers)
+- Multi-service orchestration with Docker Compose (5 services)
 
 ---
 
@@ -88,9 +88,10 @@ The project was built as a portfolio piece to demonstrate:
 - [Requirements](#-requirements)
 - [Environment Variables](#-environment-variables)
 - [Running the Project](#-running-the-project)
-- [Running Tests](#-running-tests)
+- [Testing & Code Quality](#-testing--code-quality)
 - [API Endpoints](#-api-endpoints)
 - [Example API Usage](#-example-api-usage)
+- [Asynchronous & Periodic Tasks](#-asynchronous--periodic-tasks-celery--redis)
 - [Possible Improvements](#-possible-improvements)
 - [What I Practiced](#-what-i-practiced)
 - [Author](#-author)
@@ -137,7 +138,7 @@ The application is architected around a multi-service containerized environment 
 The Django application:
 - handles authentication and JWT issuing
 - exposes the Tasks REST API (CRUD, filtering, search, pagination, statistics)
-- serves the modern dark SaaS frontend
+- serves the interactive web application interface and static assets
 - enforces ownership-based permissions
 - generates OpenAPI schema and serves Swagger/Redoc
 
@@ -192,6 +193,15 @@ taskmanager/
 │   ├── settings.py
 │   ├── urls.py
 │   └── wsgi.py
+├── docs/
+│   └── images/
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── app.js
+├── templates/
+│   └── index.html
 ├── .flake8
 ├── .github/
 │   └── workflows/
@@ -211,8 +221,9 @@ taskmanager/
 
 ## 📦 Requirements
 
-- Docker
-- Docker Compose
+- **Docker & Docker Compose** (recommended for containerized execution)
+- **Python 3.12+** (for local development without Docker)
+- **PostgreSQL 16** & **Redis 7** (or SQLite fallback for quick local testing)
 
 ---
 
@@ -262,16 +273,16 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Docker Compose orchestrates 5 services:
+Docker Compose orchestrates 5 interconnected services:
 - **`db`**: PostgreSQL 16 database with health check
 - **`redis`**: Redis 7 in-memory broker with health check
-- **`web`**: Django server & TaskFlow SaaS UI running migrations on boot
-- **`celery_worker`**: Background worker for async email dispatches
+- **`web`**: Django API & web interface service running migrations on boot
+- **`celery_worker`**: Background worker for asynchronous email dispatches
 - **`celery_beat`**: Scheduler for periodic daily task digests
 
 ### 4. Access the Application & Documentation
 
-- **TaskFlow Web Application**: `http://localhost:8000/`
+- **Web Application Interface**: `http://localhost:8000/`
 - **Interactive Swagger UI**: `http://localhost:8000/api/docs/`
 - **Redoc Documentation**: `http://localhost:8000/api/redoc/`
 - **OpenAPI Schema (YAML)**: `http://localhost:8000/api/schema/`
@@ -290,17 +301,42 @@ cp .env.example .env
 
 python manage.py migrate
 python manage.py runserver
+
+# Optional: run Celery background worker (requires local Redis instance)
+celery -A config worker -l info
 ```
 
 ---
 
-## 🧪 Running Tests
+## 🧪 Testing & Code Quality
+
+### Automated Tests
 
 ```bash
 pytest
 ```
 
-The test suite covers authentication, permissions, CRUD flows, analytics, and Celery asynchronous tasks (30 automated tests).
+The test suite contains **30 automated tests** covering:
+- User registration, authentication, token refresh, and profile management
+- Task CRUD lifecycle and ownership-based access control
+- Query filtering, full-text search, ordering, and pagination
+- Dashboard statistics calculation and edge cases (e.g. users with 0 tasks)
+- Asynchronous Celery alerts and Celery Beat periodic digest dispatch
+
+All tests pass with 100% success rate against PostgreSQL in CI.
+
+### Code Quality & Standards
+
+```bash
+# Run Flake8 linter (PEP 8 compliance)
+flake8
+
+# Django system configuration check
+python manage.py check
+
+# Validate OpenAPI 3.0 schema generation
+python manage.py spectacular --validate --fail-on-warn
+```
 
 ---
 
@@ -327,6 +363,18 @@ The test suite covers authentication, permissions, CRUD flows, analytics, and Ce
 | PUT | `/{id}/` | Full update of task (owner only) | Yes |
 | PATCH | `/{id}/` | Partial update of task (owner only) | Yes |
 | DELETE | `/{id}/` | Delete task (owner only) | Yes |
+
+#### Supported Query Parameters (`GET /api/v1/tasks/`)
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `status` | string | Filter by status (`TODO`, `IN_PROGRESS`, `DONE`) | `?status=IN_PROGRESS` |
+| `priority` | string | Filter by priority (`LOW`, `MEDIUM`, `HIGH`) | `?priority=HIGH` |
+| `due_date_after` | date | Filter tasks due on or after date | `?due_date_after=2026-09-01` |
+| `due_date_before` | date | Filter tasks due on or before date | `?due_date_before=2026-09-30` |
+| `search` | string | Full-text search across title and description | `?search=Docker` |
+| `ordering` | string | Sort by field (`due_date`, `priority`, `created_at`, `title`) | `?ordering=-created_at` |
+| `page` | integer | Page number for pagination | `?page=2` |
 
 ### Documentation
 
@@ -412,6 +460,48 @@ curl -G http://localhost:8000/api/v1/tasks/ \
 curl -X GET http://localhost:8000/api/v1/auth/me/ \
   -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>"
 ```
+
+### 7. Retrieve dashboard analytics & statistics
+
+```bash
+curl -X GET http://localhost:8000/api/v1/tasks/statistics/ \
+  -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>"
+```
+
+Response:
+
+```json
+{
+  "total": 10,
+  "by_status": {
+    "todo": 3,
+    "in_progress": 4,
+    "done": 3
+  },
+  "by_priority": {
+    "high": 2,
+    "medium": 5,
+    "low": 3
+  },
+  "overdue": 1,
+  "completion_rate_percentage": 30.0
+}
+```
+
+---
+
+## ⚡ Asynchronous & Periodic Tasks (Celery + Redis)
+
+TaskFlow offloads non-blocking operations and scheduled workflows to Celery workers using Redis as the message broker:
+
+1. **High-Priority Task Alerts (`send_task_high_priority_alert`)**
+   - Dispatched asynchronously upon creation of tasks with `HIGH` priority.
+   - Sends an email notification to the task owner containing task metadata and deadline.
+
+2. **Daily Overdue Tasks Digest (`send_overdue_tasks_digest`)**
+   - Scheduled via **Celery Beat** to execute periodically.
+   - Queries all uncompleted tasks where `due_date < now()`.
+   - Aggregates overdue tasks per user and sends a summary digest email.
 
 ---
 
