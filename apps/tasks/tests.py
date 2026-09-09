@@ -1,6 +1,7 @@
 from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.cache import cache
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -240,6 +241,57 @@ class TaskStatisticsTests(APITestCase):
         self.assertEqual(response.data['by_priority']['low'], 0)
         self.assertEqual(response.data['overdue'], 0)
         self.assertEqual(response.data['completion_rate_percentage'], 0.0)
+
+    def test_statistics_cached_and_invalidated_on_task_create(self):
+        self.client.force_authenticate(user=self.user)
+        cache_key = f"taskflow:user:{self.user.id}:statistics"
+
+        # Initially cache is empty
+        self.assertIsNone(cache.get(cache_key))
+
+        # First request populates cache
+        response = self.client.get(self.stats_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total'], 3)
+        cached_data = cache.get(cache_key)
+        self.assertIsNotNone(cached_data)
+        self.assertEqual(cached_data['total'], 3)
+
+        # Creating a task invalidates the cache via signal
+        Task.objects.create(
+            title='New Task for Cache Invalidation',
+            status=Task.Status.TODO,
+            owner=self.user
+        )
+        self.assertIsNone(cache.get(cache_key))
+
+        # Next request recomputes stats with updated count
+        response2 = self.client.get(self.stats_url)
+        self.assertEqual(response2.status_code, status.HTTP_200_OK)
+        self.assertEqual(response2.data['total'], 4)
+        self.assertEqual(cache.get(cache_key)['total'], 4)
+
+    def test_statistics_invalidated_on_task_update_and_delete(self):
+        self.client.force_authenticate(user=self.user)
+        cache_key = f"taskflow:user:{self.user.id}:statistics"
+
+        # Populate cache
+        self.client.get(self.stats_url)
+        self.assertIsNotNone(cache.get(cache_key))
+
+        # Updating a task invalidates cache
+        task = Task.objects.filter(owner=self.user).first()
+        task.status = Task.Status.DONE
+        task.save()
+        self.assertIsNone(cache.get(cache_key))
+
+        # Re-populate cache
+        self.client.get(self.stats_url)
+        self.assertIsNotNone(cache.get(cache_key))
+
+        # Deleting a task invalidates cache
+        task.delete()
+        self.assertIsNone(cache.get(cache_key))
 
 
 @override_settings(

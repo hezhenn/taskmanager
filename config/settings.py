@@ -104,6 +104,25 @@ else:
         }
     }
 
+# Cache configuration (Redis with LocMemCache fallback)
+REDIS_CACHE_URL = os.getenv('REDIS_CACHE_URL')
+if REDIS_CACHE_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_CACHE_URL,
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'taskflow-default-cache',
+        }
+    }
+
+TASK_STATISTICS_CACHE_TTL = int(os.getenv('TASK_STATISTICS_CACHE_TTL', 600))
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -150,6 +169,16 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': os.getenv('THROTTLE_RATE_ANON', '100/minute'),
+        'user': os.getenv('THROTTLE_RATE_USER', '1000/minute'),
+        'auth': os.getenv('THROTTLE_RATE_AUTH', '10/minute'),
+        'register': os.getenv('THROTTLE_RATE_REGISTER', '5/minute'),
+    },
 }
 
 # Simple JWT configuration

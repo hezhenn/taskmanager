@@ -73,7 +73,7 @@ The project was built as a portfolio piece to demonstrate:
 - Ownership-based access control (users can only access and modify their own data)
 - Asynchronous task processing and scheduled routines with Celery and Redis
 - Single-page application interface for direct API interaction
-- Automated testing and CI/CD with `pytest` (30 tests), `flake8`, and GitHub Actions
+- Automated testing and CI/CD with `pytest` (34 tests), `flake8`, and GitHub Actions
 - OpenAPI 3.0 documentation with Swagger UI and Redoc
 - Multi-service orchestration with Docker Compose (5 services)
 
@@ -93,6 +93,8 @@ The project was built as a portfolio piece to demonstrate:
 - [API Endpoints](#api-endpoints)
 - [Example API Usage](#example-api-usage)
 - [Asynchronous & Periodic Tasks](#asynchronous--periodic-tasks-celery--redis)
+- [Performance & Redis Caching](#performance--redis-caching)
+- [Security & Rate Limiting](#security--rate-limiting)
 - [Possible Improvements](#possible-improvements)
 - [What I Practiced](#what-i-practiced)
 - [Author](#author)
@@ -101,17 +103,19 @@ The project was built as a portfolio piece to demonstrate:
 
 ## 🚀 Features
 
-- **Authentication & Profiles**
+- **Authentication & Security**
   - JWT authentication (`access` & `refresh` tokens)
   - User registration with password validation
+  - API rate limiting & brute-force protection (10 req/min login, 5 req/min registration)
   - Authenticated profile retrieval and update
-- **Task Management**
+- **Task Management & Performance**
   - Full CRUD operations on tasks
   - Ownership-based permissions — users only access their own tasks
   - Task statuses: `TODO`, `IN_PROGRESS`, `DONE`
   - Task priorities: `LOW`, `MEDIUM`, `HIGH`
   - Optional due dates
   - Task analytics and statistics (`/api/v1/tasks/statistics/`)
+  - **Redis Cache-Aside optimization** with smart signal-based cache invalidation
 - **Asynchronous & Periodic Tasks (Celery + Redis)**
   - Immediate asynchronous email alerts dispatched upon high-priority task creation
   - Daily overdue task digest automated via Celery Beat periodic scheduler
@@ -125,7 +129,7 @@ The project was built as a portfolio piece to demonstrate:
   - OpenAPI 3.0 schema
   - Swagger UI and Redoc
 - **Testing**
-  - 30 automated tests covering auth, permissions, CRUD, analytics, and Celery tasks
+  - 34 automated tests covering auth, permissions, CRUD, analytics, Celery tasks, caching, and rate limiting
 - **Containerization**
   - Fully Dockerized with PostgreSQL, Redis, Celery Worker, and Celery Beat
 
@@ -150,7 +154,8 @@ PostgreSQL database:
 
 ### `redis`
 Redis in-memory data store:
-- serves as the message broker and result backend for Celery
+- serves as the message broker and result backend for Celery (DB 0)
+- serves as the high-performance distributed cache backend for analytics (DB 1)
 
 ### `celery_worker`
 Celery background worker:
@@ -174,6 +179,7 @@ taskmanager/
 │   │   ├── models.py
 │   │   ├── serializers.py
 │   │   ├── tests.py
+│   │   ├── throttles.py
 │   │   ├── urls.py
 │   │   └── views.py
 │   └── tasks/
@@ -184,6 +190,7 @@ taskmanager/
 │       ├── models.py
 │       ├── permissions.py
 │       ├── serializers.py
+│       ├── signals.py
 │       ├── tasks.py
 │       ├── tests.py
 │       ├── urls.py
@@ -210,6 +217,7 @@ taskmanager/
 ├── .dockerignore
 ├── .env.example
 ├── .gitignore
+├── conftest.py
 ├── docker-compose.yml
 ├── Dockerfile
 ├── manage.py
@@ -247,6 +255,14 @@ POSTGRES_PORT=5432
 # Celery & Redis
 CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/0
+REDIS_CACHE_URL=redis://localhost:6379/1
+TASK_STATISTICS_CACHE_TTL=600
+
+# Rate Limiting (Throttling)
+THROTTLE_RATE_ANON=100/minute
+THROTTLE_RATE_USER=1000/minute
+THROTTLE_RATE_AUTH=10/minute
+THROTTLE_RATE_REGISTER=5/minute
 ```
 
 If PostgreSQL and Redis environment variables are not set, the project falls back to SQLite and synchronous task execution for local development.
@@ -317,11 +333,13 @@ celery -A config worker -l info
 pytest
 ```
 
-The test suite contains **30 automated tests** covering:
+The test suite contains **34 automated tests** covering:
 - User registration, authentication, token refresh, and profile management
+- API rate limiting (throttling) and brute-force protection (`HTTP 429`)
 - Task CRUD lifecycle and ownership-based access control
 - Query filtering, full-text search, ordering, and pagination
 - Dashboard statistics calculation and edge cases (e.g. users with 0 tasks)
+- Redis Cache-Aside pattern (cache hit/miss) and signal-based cache invalidation
 - Asynchronous Celery alerts and Celery Beat periodic digest dispatch
 
 All tests pass with 100% success rate against PostgreSQL in CI.
@@ -506,14 +524,38 @@ TaskFlow offloads non-blocking operations and scheduled workflows to Celery work
 
 ---
 
+## ⚡ Performance & Redis Caching
+
+To reduce database load and eliminate redundant heavy aggregation queries, TaskFlow implements the **Cache-Aside pattern** with Redis:
+
+- **Cached Endpoint**: `GET /api/v1/tasks/statistics/`
+- **Cache Key Design**: `taskflow:user:{user_id}:statistics` (isolated per authenticated user)
+- **TTL (Time-To-Live)**: Configurable (defaults to 10 minutes / 600s via `TASK_STATISTICS_CACHE_TTL`)
+- **Signal-Driven Cache Invalidation**: Automatic cache invalidation is connected via Django signals (`post_save` and `post_delete` on the `Task` model). Any time a user creates, updates, or deletes a task, their cached statistics key is instantly evicted, guaranteeing zero stale data on subsequent reads.
+
+---
+
+## 🛡️ Security & Rate Limiting
+
+TaskFlow protects sensitive API endpoints from brute-force password guessing, credential stuffing, and automated spam registration using DRF's throttling architecture:
+
+- **Obtain Token (`/api/v1/auth/token/`)**: Throttled to **10 requests / minute** per IP address.
+- **User Registration (`/api/v1/auth/register/`)**: Throttled to **5 requests / minute** per IP address.
+- **General Anonymous Rate**: 100 requests / minute.
+- **General Authenticated User Rate**: 1000 requests / minute.
+- **Dynamic Scoped Throttling**: Implemented via custom `DynamicScopedRateThrottle` allowing dynamic configuration via environment variables and flexible test isolation.
+- **HTTP 429 Response**: When requests exceed threshold limits, the API responds with `HTTP 429 Too Many Requests` including standard `Retry-After` headers.
+
+---
+
 ## 🔮 Possible Improvements
 
 A few ideas for future development:
 
-- Add Redis caching for frequently listed tasks and statistics
-- Add rate limiting on authentication endpoints
-- Add soft-delete for tasks instead of permanent deletion
-- Add task comments or activity history
+- Add WebSocket / Server-Sent Events for real-time task board updates
+- Add soft-delete (`is_deleted`, `deleted_at`) with trash bin and task restoration (`/restore/`)
+- Add task activity history log and comment threads
+- Add CSV export of user tasks dispatched as an asynchronous background task
 
 ---
 
@@ -527,8 +569,10 @@ Through this project, I practiced and improved my skills in:
 - building filtering, search, and pagination for API resources
 - generating and maintaining OpenAPI documentation with drf-spectacular
 - integrating Celery and Redis for asynchronous task execution (email alerts) and periodic background jobs (Celery Beat digests)
-- writing automated tests with pytest and pytest-django (30 tests)
-- configuring automated CI/CD workflows with GitHub Actions (Flake8 linting, PostgreSQL service, test suite)
+- designing a high-performance caching layer with Redis (Cache-Aside pattern, TTL, signal-based invalidation)
+- implementing API security policies and rate limiting (throttling against brute-force attacks)
+- writing automated tests with pytest and pytest-django (34 unit & integration tests)
+- configuring automated CI/CD workflows with GitHub Actions (Flake8 linting, PostgreSQL service, Redis service, test suite)
 - orchestrating a multi-service containerized architecture (Django, PostgreSQL, Redis, Celery Worker, Celery Beat) with Docker Compose
 
 This project was built as a practical portfolio piece to combine API design, authentication, testing, and Docker-based deployment in one application.

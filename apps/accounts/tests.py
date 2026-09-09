@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -131,3 +133,68 @@ class UserProfileTests(APITestCase):
         self.assertEqual(response.data['first_name'], 'NewName')
         self.user.refresh_from_db()
         self.assertEqual(self.user.first_name, 'NewName')
+
+
+class AuthThrottlingTests(APITestCase):
+
+    def test_token_obtain_rate_limit(self):
+        User.objects.create_user(
+            username='auththrottle',
+            email='auththrottle@example.com',
+            password='Password123!'
+        )
+        url = reverse('token_obtain_pair')
+        payload = {
+            'username': 'auththrottle',
+            'password': 'Password123!'
+        }
+
+        throttle_rates = {
+            **settings.REST_FRAMEWORK.get('DEFAULT_THROTTLE_RATES', {}),
+            'auth': '2/minute',
+        }
+        with override_settings(REST_FRAMEWORK={**settings.REST_FRAMEWORK, 'DEFAULT_THROTTLE_RATES': throttle_rates}):
+            res1 = self.client.post(url, payload)
+            self.assertEqual(res1.status_code, status.HTTP_200_OK)
+
+            res2 = self.client.post(url, payload)
+            self.assertEqual(res2.status_code, status.HTTP_200_OK)
+
+            res3 = self.client.post(url, payload)
+            self.assertEqual(res3.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+            self.assertIn('throttled', str(res3.data['detail']).lower())
+
+    def test_register_rate_limit(self):
+        url = reverse('register')
+        throttle_rates = {
+            **settings.REST_FRAMEWORK.get('DEFAULT_THROTTLE_RATES', {}),
+            'register': '2/minute',
+        }
+        with override_settings(REST_FRAMEWORK={**settings.REST_FRAMEWORK, 'DEFAULT_THROTTLE_RATES': throttle_rates}):
+            payload1 = {
+                'username': 'throttleuser1',
+                'email': 'throttle1@example.com',
+                'password': 'Password123!',
+                'password_confirm': 'Password123!',
+            }
+            res1 = self.client.post(url, payload1)
+            self.assertEqual(res1.status_code, status.HTTP_201_CREATED)
+
+            payload2 = {
+                'username': 'throttleuser2',
+                'email': 'throttle2@example.com',
+                'password': 'Password123!',
+                'password_confirm': 'Password123!',
+            }
+            res2 = self.client.post(url, payload2)
+            self.assertEqual(res2.status_code, status.HTTP_201_CREATED)
+
+            payload3 = {
+                'username': 'throttleuser3',
+                'email': 'throttle3@example.com',
+                'password': 'Password123!',
+                'password_confirm': 'Password123!',
+            }
+            res3 = self.client.post(url, payload3)
+            self.assertEqual(res3.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+            self.assertIn('throttled', str(res3.data['detail']).lower())

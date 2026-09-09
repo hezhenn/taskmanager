@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.core.cache import cache
 from django.db.models import Count, Q
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -65,6 +67,11 @@ class TaskViewSet(viewsets.ModelViewSet):
     )
     @action(detail=False, methods=['get'], url_path='statistics')
     def statistics(self, request):
+        cache_key = f"taskflow:user:{request.user.id}:statistics"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+
         now = timezone.now()
         stats = self.get_queryset().aggregate(
             total=Count('id'),
@@ -81,7 +88,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         done = stats['done'] or 0
         completion_rate = round((done / total * 100), 1) if total > 0 else 0.0
 
-        return Response({
+        response_data = {
             'total': total,
             'by_status': {
                 'todo': stats['todo'] or 0,
@@ -95,4 +102,9 @@ class TaskViewSet(viewsets.ModelViewSet):
             },
             'overdue': stats['overdue'] or 0,
             'completion_rate_percentage': completion_rate,
-        })
+        }
+
+        cache_ttl = getattr(settings, 'TASK_STATISTICS_CACHE_TTL', 600)
+        cache.set(cache_key, response_data, timeout=cache_ttl)
+
+        return Response(response_data)
