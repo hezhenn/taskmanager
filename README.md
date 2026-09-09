@@ -81,20 +81,21 @@ The project was built as a portfolio piece to demonstrate:
 
 ## 📑 Table of Contents
 
-- [Interface Preview](#️-interface-preview)
-- [Features](#-features)
-- [Architecture](#️-architecture)
-- [Project Structure](#-project-structure)
-- [Requirements](#-requirements)
-- [Environment Variables](#-environment-variables)
-- [Running the Project](#-running-the-project)
-- [Testing & Code Quality](#-testing--code-quality)
-- [API Endpoints](#-api-endpoints)
-- [Example API Usage](#-example-api-usage)
-- [Asynchronous & Periodic Tasks](#-asynchronous--periodic-tasks-celery--redis)
-- [Possible Improvements](#-possible-improvements)
-- [What I Practiced](#-what-i-practiced)
-- [Author](#-author)
+- [Interface Preview](#interface-preview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Requirements](#requirements)
+- [Environment Variables](#environment-variables)
+- [Running the Project](#running-the-project)
+- [Local Setup (Without Docker)](#local-setup-without-docker)
+- [Testing & Code Quality](#testing--code-quality)
+- [API Endpoints](#api-endpoints)
+- [Example API Usage](#example-api-usage)
+- [Asynchronous & Periodic Tasks](#asynchronous--periodic-tasks-celery--redis)
+- [Possible Improvements](#possible-improvements)
+- [What I Practiced](#what-i-practiced)
+- [Author](#author)
 
 ---
 
