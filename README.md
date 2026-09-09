@@ -75,7 +75,7 @@ The project was built as a portfolio piece to demonstrate:
 - High-performance caching with Redis (Cache-Aside pattern and signal-based cache invalidation)
 - Asynchronous task processing and scheduled routines with Celery and Redis
 - Single-page application interface for direct API interaction
-- Automated testing and CI/CD with `pytest` (34 tests), `flake8`, and GitHub Actions
+- Automated testing and CI/CD with `pytest` (36 tests), `flake8`, and GitHub Actions
 - OpenAPI 3.0 documentation with Swagger UI and Redoc
 - Multi-service orchestration with Docker Compose (5 services)
 
@@ -131,7 +131,7 @@ The project was built as a portfolio piece to demonstrate:
   - OpenAPI 3.0 schema
   - Swagger UI and Redoc
 - **Testing**
-  - 34 automated tests covering auth, permissions, CRUD, analytics, Celery tasks, caching, and rate limiting
+  - 36 automated tests covering auth, permissions, CRUD, analytics, Celery tasks, caching, and rate limiting
 - **Containerization**
   - Fully Dockerized with PostgreSQL, Redis, Celery Worker, and Celery Beat
 
@@ -335,7 +335,7 @@ celery -A config worker -l info
 pytest
 ```
 
-The test suite contains **34 automated tests** covering:
+The test suite contains **36 automated tests** covering:
 - User registration, authentication, token refresh, and profile management
 - API rate limiting (throttling) and brute-force protection (`HTTP 429`)
 - Task CRUD lifecycle and ownership-based access control
@@ -548,6 +548,7 @@ TaskFlow protects sensitive API endpoints from brute-force password guessing, cr
 - **General Anonymous Rate**: 100 requests / minute.
 - **General Authenticated User Rate**: 1000 requests / minute.
 - **Dynamic Scoped Throttling**: Implemented via custom `DynamicScopedRateThrottle` allowing dynamic configuration via environment variables and flexible test isolation.
+- **Reverse Proxy & Docker IP Resolution**: Accurately resolves individual client IPs behind Docker bridges, Nginx, and Cloudflare by prioritizing `X-Real-IP` and parsing the client address from `X-Forwarded-For`, preventing shared-proxy IP rate limit collisions.
 - **HTTP 429 Response**: When requests exceed threshold limits, the API responds with `HTTP 429 Too Many Requests` including standard `Retry-After` headers.
 
 ---
@@ -575,7 +576,7 @@ Through this project, I practiced and improved my skills in:
 - integrating Celery and Redis for asynchronous task execution (email alerts) and periodic background jobs (Celery Beat digests)
 - designing a high-performance caching layer with Redis (Cache-Aside pattern, TTL, signal-based invalidation)
 - implementing API security policies and rate limiting (throttling against brute-force attacks)
-- writing automated tests with pytest and pytest-django (34 unit & integration tests)
+- writing automated tests with pytest and pytest-django (36 unit & integration tests)
 - configuring automated CI/CD workflows with GitHub Actions (Flake8 linting, PostgreSQL service, Redis service, test suite)
 - orchestrating a multi-service containerized architecture (Django, PostgreSQL, Redis, Celery Worker, Celery Beat) with Docker Compose
 

@@ -13,3 +13,19 @@ class DynamicScopedRateThrottle(ScopedRateThrottle):
             return super().get_rate()
         rates = api_settings.DEFAULT_THROTTLE_RATES
         return rates.get(self.scope)
+
+    def get_ident(self, request):
+        """
+        Identify the client IP address accurately behind reverse proxies (Nginx, Docker, Cloudflare).
+        Prioritizes HTTP_X_REAL_IP if present, otherwise parses the original client IP from
+        HTTP_X_FORWARDED_FOR, falling back to REMOTE_ADDR.
+        """
+        x_real_ip = request.META.get('HTTP_X_REAL_IP')
+        if x_real_ip:
+            return x_real_ip.strip()
+
+        xff = request.META.get('HTTP_X_FORWARDED_FOR')
+        if xff:
+            return xff.split(',')[0].strip()
+
+        return super().get_ident(request)

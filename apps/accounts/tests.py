@@ -198,3 +198,24 @@ class AuthThrottlingTests(APITestCase):
             res3 = self.client.post(url, payload3)
             self.assertEqual(res3.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
             self.assertIn('throttled', str(res3.data['detail']).lower())
+
+    def test_throttle_proxy_ip_resolution_x_real_ip(self):
+        from django.test import RequestFactory
+        from apps.accounts.throttles import DynamicScopedRateThrottle
+
+        rf = RequestFactory()
+        throttle = DynamicScopedRateThrottle()
+        request = rf.get('/api/v1/auth/token/', HTTP_X_REAL_IP='198.51.100.25')
+        self.assertEqual(throttle.get_ident(request), '198.51.100.25')
+
+    def test_throttle_proxy_ip_resolution_x_forwarded_for(self):
+        from django.test import RequestFactory
+        from apps.accounts.throttles import DynamicScopedRateThrottle
+
+        rf = RequestFactory()
+        throttle = DynamicScopedRateThrottle()
+        request = rf.get(
+            '/api/v1/auth/token/',
+            HTTP_X_FORWARDED_FOR='198.51.100.77, 172.18.0.2'
+        )
+        self.assertEqual(throttle.get_ident(request), '198.51.100.77')

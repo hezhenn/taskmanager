@@ -179,7 +179,12 @@ REST_FRAMEWORK = {
         'auth': os.getenv('THROTTLE_RATE_AUTH', '10/minute'),
         'register': os.getenv('THROTTLE_RATE_REGISTER', '5/minute'),
     },
+    'NUM_PROXIES': int(os.getenv('NUM_PROXIES', 1)) if os.getenv('NUM_PROXIES') is not None else None,
 }
+
+# Reverse proxy / SSL termination settings (Nginx, Traefik, Docker, Cloudflare)
+if os.getenv('SECURE_PROXY_SSL_HEADER', 'False').lower() in ('true', '1', 'yes'):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Simple JWT configuration
 SIMPLE_JWT = {
